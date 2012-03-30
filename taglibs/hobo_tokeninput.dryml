@@ -1,0 +1,41 @@
+
+<%# `<token-input>` is a thin wrapper around [jQuery Tokeninput](http://loopj.com/jquery-tokeninput/).
+
+### Attributes
+
+- `uri` (required):  The path to the action that performs the token lookup.
+
+All attributes supported by  [jQuery Tokeninput](http://loopj.com/jquery-tokeninput/) (method, queryParam, searchDelay, minChars, etc.) are supported.
+
+All other attributes are passed through to the input (name, id, class,
+etc.)
+
+%>
+<def tag="token-input" attrs="name, uri"><%=
+options, attrs = attributes.partition_hash(%w(method queryParam searchDelay minChars propertyToSearch jsonContainer crossDomain prePopulate hintText noResultsText searchingText deleteText animateDropdown theme tokenLimit tokenDelimiter preventDuplicates tokenValue))
+events, html_attrs = attrs.partition_hash(%w(resultsFormatter tokenFormatter onResult onAdd onDelete onReady))
+raise "uri required" if uri.blank?
+add_data_rapid!(html_attrs, 'tokeninput', :options => options, :events => events, :uri => uri)
+name ||= param_name_for_this
+text_field_tag(name, "", deunderscore_attributes(html_attrs))
+-%>
+</def>
+
+<%# `<name-many>` uses `<token-input>` to provide a server-side autocompleting input for has_many :through associations.
+
+This tag works very similarly to `<name-one>`.   See the `<name-one>` documentation for more information.  It utilizes the controller actions built with `autocomplete` or `hobo_completions` in the same manner as `<name-one>` and callers specify the action using `complete-target` and `completer` in the same manner as `<name-one>`.
+
+### Attributes:
+
+`complete-target`, `completer`: see `<name-one>`
+
+All other attributes are passed through to `<token-input>`.
+%>
+<def tag="name-many" attrs="complete-target, completer"><%
+  complete_target ||= this_field_reflection.klass
+  completer ||= (complete_target.is_a?(Class) ? complete_target : complete_target.class).name_attribute
+  attributes['uri'] ||= polymorphic_url(complete_target, :action => "complete_#{completer}", :routing_type => :path)
+  attributes['prePopulate'] ||= this.map {|r| {:id => "@#{r.send(r.class.primary_key)}", :name => r.send(completer)}}
+-%>
+  <token-input merge/>
+</def>
